@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "string.h": "c",
+        "protocol.h": "c",
+        "client_manager.h": "c",
+        "stdlib.h": "c",
+        "list_itr.h": "c",
+        "gendoublelist.h": "c",
+        "genhashmap.h": "c",
+        "group.h": "c",
+        "groupmanager.h": "c",
+        "list_functions.h": "c",
+        "genqueue.h": "c"
+    }
+}

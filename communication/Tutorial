@@ -1,0 +1,15 @@
+The socket() call creates a socket in the specified domain and of the specified type.
+
+getsockopt, setsockopt - get and set options on sockets
+
+bind - bind a name to a socket
+
+listen - listen for connections on a socket
+
+fcntl - manipulate file descriptor
+
+accept, accept4 - accept a connection on a socket
+
+recv, recvfrom, recvmsg - receive a message from a socket
+
+send, sendto, sendmsg - send a message on a socket

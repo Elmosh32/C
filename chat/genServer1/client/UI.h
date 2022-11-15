@@ -1,0 +1,14 @@
+#ifndef __UI_H__
+#define __UI_H__
+
+void FirstMenu();
+void EnterUserName();
+void EnterPass();
+void RegSuccess();
+void RegFail();
+void LoginSuccess();
+void LoginFail();
+void GroupMenu();
+void CloseProg();
+
+#endif /*__UI_H__*/

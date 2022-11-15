@@ -1,0 +1,139 @@
+#include "serverNet.h"
+#include "protocol.h"
+#include "userManager.h"
+#include <stdio.h>
+#include <netinet/in.h>
+#include <string.h> 
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <sys/time.h>
+
+#define PORT_NUM 1880
+#define BACK_LOG 300
+#define BUF_SEND 40
+
+/* remove after test: */
+typedef struct GroupManager
+{
+
+}GroupManager;
+
+typedef struct ServerManager
+{
+    Server* m_server;
+    UserManager* m_userMng;
+    GroupManager* m_groupMng;
+
+}ServerManager;
+
+void GotMessage( char* _buf, int _readBytes, int _clientId, Server* _server, void* _context )
+{
+    int  status;
+    char tag;
+    char messageBuf[_readBytes];
+    char messageFail[BUF_SEND], userName[24], password[8];
+    snprintf(messageFail, BUF_SEND,"Unvalid message from client %d", _clientId);
+    _buf[_readBytes]='\0';
+    /* status = UnPackMsg(_buf, _readBytes, messageBuf, &tag); */
+    /*printf("%s \n", (char*)_buf);*/
+    if(_buf == NULL || strlen(_buf) < 3)
+    {
+        SendMessage(_server,_clientId, (void*)messageFail, strlen(messageFail) );
+        return;
+    }
+
+    /* tag= atoi(_buf[0]); */
+    tag= _buf[0];
+    switch (tag)
+    {
+    case REG_REQUEST:
+        UnPackRegRequest(_buf, _readBytes, userName, password); /* unpack puts values in username and password buffers*/
+        TreatRegistration(userName, password, _context, _clientId);
+        break;
+    
+    default:
+        break;
+    }
+
+}
+
+
+void TreatRegistration( char* _userName, char* _password, void* _context, int _clientId)
+{
+    char bufferSend[24];
+    char tag;
+    int totalLen, status;
+    status = AddToUsersMap( _userName, _password, ((ServerManager*)_context)->m_userMng );
+    if(status == 1)
+    {
+        snprintf(&tag, 1, "%d", REG_OK);
+        totalLen =PackRegAns(tag, 1, bufferSend);
+        
+    }
+    else
+    {
+        snprintf(&tag, 1, "%d", REG_FAIL);
+        totalLen= PackRegAns(tag,0, bufferSend );
+    }
+    if(totalLen == 3)
+    {
+        SendMessage(((ServerManager*)_context)->m_server, _clientId, (void*)bufferSend, strlen(bufferSend));
+    }
+}
+
+/*
+void* TreatMessage( char* _buf, int _readBytes, int _clientId, Server* _server, void* _context )
+{
+    char bufferSend[BUF_SEND];
+    snprintf(bufferSend, BUF_SEND,"Server: Hi client %d", _clientId);
+    _buf[_readBytes]='\0';
+    printf("%s \n", _buf);
+    SendMessage(_server,_clientId,(void*)bufferSend, strlen(bufferSend) );
+} */
+
+
+ ServerManager* CreateServerManager()
+ {
+    ServerManager* mng = NULL;
+    if( (mng = (ServerManager*)malloc(sizeof(ServerManager))) == NULL)
+    {
+        return NULL;
+    }
+
+    mng->m_userMng = UserManagerCreate();
+    if( mng->m_userMng == NULL)
+    {
+        return NULL;
+    }
+    mng->m_groupMng= NULL; /* change when we add group manager*/
+    mng->m_server = ServerCreate( NULL, GotMessage, NULL, NULL, PORT_NUM, BACK_LOG, (void*)mng);
+    if( mng->m_server == NULL)
+    {
+        return NULL;
+    }
+    return mng;
+ }
+
+int main()
+{
+    ServerResult res;
+    ServerManager* serverMng = CreateServerManager();
+
+    if(serverMng == NULL)
+    {
+        printf("Failed creating the server\n");
+    }
+    else
+    {
+        res =RunServer(serverMng->m_server);
+        if (res == FAILED_CONNECTION || res == FAILED_SELECT)
+        {
+            ServerDestroy(serverMng->m_server);
+            ReloadServer(NULL, GotMessage, NULL, NULL, PORT_NUM, BACK_LOG);
+        }
+    }
+     
+
+    return 0;
+}
